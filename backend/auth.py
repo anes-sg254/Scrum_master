@@ -1,6 +1,6 @@
-from fastapi import APIRouter, Request, HTTPException
+from fastapi import APIRouter, Request, HTTPException,Header
 from config_db import connect_to_db
-from utils import hash_password, verify_password, create_token
+from utils import hash_password, verify_password, create_token,decode_token
 
 router = APIRouter()
 
@@ -55,4 +55,20 @@ async def login(request: Request):
 
     return {"access_token": token, "user_id": user[0]}
 
+
+@router.get("/me")
+def get_current_user(authorization: str = Header(...)):
+    token = authorization.split(" ")[1]
+    user_id = decode_token(token)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Token invalide")
+
+    conn = connect_to_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, name, role FROM users WHERE id = %s", (user_id,))
+    user = cursor.fetchone()
+    cursor.close()
+    conn.close()
+
+    return {"id": user[0], "name": user[1], "role": user[2]}
 

@@ -1,5 +1,6 @@
 import bcrypt
 import jwt
+from fastapi import FastAPI,Header,HTTPException, Depends
 from datetime import datetime, timedelta
 
 # Clé secrète pour les tokens (à mettre dans .env en prod)
@@ -31,3 +32,14 @@ def decode_token(token: str):
         return None
     except jwt.InvalidTokenError:
         return None
+    
+    
+def get_current_user(authorization: str = Header(...)):
+    try:
+        token = authorization.split(" ")[1]
+        user_id = decode_token(token)
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Token invalide")
+        return user_id
+    except Exception:
+        raise HTTPException(status_code=401, detail="Token invalide")
