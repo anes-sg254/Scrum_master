@@ -4,14 +4,14 @@ from utils import hash_password, verify_password, create_token
 
 router = APIRouter()
 
-#Inscription utilisateur
+# Inscription utilisateur avec rôle
 @router.post("/register")
 async def register(request: Request): 
     data = await request.json()        
     name = data["name"]
     email = data["email"]
     password = data["password"]
-    phone_number = data["phone_number"]
+    role = data.get("role", "etudiant")  
 
     hashed_pw = hash_password(password)
 
@@ -23,21 +23,16 @@ async def register(request: Request):
     if cursor.fetchone():
         raise HTTPException(status_code=400, detail="Email déjà utilisé.")
 
-    # Vérifie si le numéro est déjà utilisé
-    cursor.execute("SELECT * FROM users WHERE phone_number = %s", (phone_number,))
-    if cursor.fetchone():
-        raise HTTPException(status_code=400, detail="Téléphone déjà utilisé.")
-
-    # Insère l'utilisateur
+    # Insère l'utilisateur avec le rôle
     cursor.execute(
-        "INSERT INTO users (name, email, phone_number, password) VALUES (%s, %s, %s, %s)", 
-        (name, email, phone_number, hashed_pw)
+        "INSERT INTO users (name, email, password, role) VALUES (%s, %s, %s, %s)", 
+        (name, email, hashed_pw, role)
     )
     conn.commit()
     cursor.close()
     conn.close()
 
-    return {"message": "Inscription réussie."}
+    return {"message": f"Inscription réussie en tant que {role}."}
 
 # Connexion utilisateur
 @router.post("/login")
@@ -59,3 +54,5 @@ async def login(request: Request):
     conn.close()
 
     return {"access_token": token, "user_id": user[0]}
+
+
